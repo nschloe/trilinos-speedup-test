@@ -1,0 +1,105 @@
+#!/usr/bin/env python
+
+import sys
+import subprocess
+
+# =========================================================================
+def _main():
+    file = './poisson1d'
+
+    #type = 'hybrid'
+    type = 'mpi'
+    for num_nodes in [1, 2, 4, 8]:
+        _submit_job(file, num_nodes, type)
+
+    return
+# =========================================================================
+def _submit_job(file, num_nodes, type):
+
+    cores_per_node = 24
+
+    if type == 'mpi':
+        num_cores = num_nodes * cores_per_node
+        submit = '''#!/bin/bash -l
+#PBS -N poisson
+#PBS -q debug
+#PBS -l mppwidth=%d
+#PBS -V
+#PBS -l walltime=0:05:00
+
+cd $PBS_O_WORKDIR
+
+aprun -n %d %s
+''' % (num_cores, num_cores, file)
+    elif type == 'hybrid':
+        # <http://www.nersc.gov/users/computational-systems/hopper/running-jobs/using-openmp-with-mpi/>.
+        # NERSC recommends 4 MPI jobs per node and 6 OMP threads per job.
+        mpi_jobs_per_node = 4
+        omp_threads_per_mpi_job = 6
+        assert(mpi_jobs_per_node*omp_threads_per_mpi_job == cores_per_node)
+        submit = '''#!/bin/bash -l
+#PBS -N poisson
+#PBS -q debug
+#PBS -l mppwidth=%d
+#PBS -V
+#PBS -l walltime=0:05:00
+
+cd $PBS_O_WORKDIR
+
+export OMP_NUM_THREADS=%d
+# Pathscale compiler:  export PSC_OMP_AFFINITY=FALSE
+
+# Intel compiled program:
+aprun -n %d -d %d -N %d -cc numa_node %s
+''' % (num_nodes * mpi_jobs_per_node * omp_threads_per_mpi_job,
+       omp_threads_per_mpi_job,
+       num_nodes * mpi_jobs_per_node,
+       omp_threads_per_mpi_job,
+       mpi_jobs_per_node,
+       file
+       )
+    else:
+        raise RuntimeError('Unknown job type \'%s\'.' % type)
+
+    # Write the submit file.
+    f = open('submit.sh', 'w')
+    f.write(submit)
+    f.close()
+
+    # Actually submit.
+    run('qsub submit.sh')
+
+    return
+# ==============================================================================
+def run(command, verbose=True):
+    '''
+    Runs a given command on the command line and returns its output.
+    '''
+    if verbose:
+        print command
+
+    # From <http://docs.python.org/library/subprocess.html>:
+    # If close_fds is true, all file descriptors except 0, 1 and 2 will be
+    # closed before the child process is executed. (Unix only). Or, on Windows,
+    # if close_fds is true then no handles will be inherited by the child
+    # process. Note that on Windows, you cannot set close_fds to true and also
+    # redirect the standard handles by setting stdin, stdout or stderr.
+    process = subprocess.Popen( command,
+                                shell=True,
+                                stdout=subprocess.PIPE,
+                                stderr=subprocess.PIPE,
+                                close_fds=False )
+    output = process.stdout.read()[:-1]
+    ret = process.wait()
+
+    if ret != 0:
+        sys.exit( '\nERROR: The command \n\n%s\n\nreturned a nonzero ' \
+                  'exit status. The error message is \n\n%s\n\n' \
+                  'Abort.\n' % \
+                  ( command, process.stderr.read()[:-1] )
+                )
+    return output
+# =========================================================================
+if __name__ == '__main__':
+    _main()
+# =========================================================================

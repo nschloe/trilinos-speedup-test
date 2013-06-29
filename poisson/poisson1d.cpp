@@ -94,6 +94,7 @@ int main (int argc, char *argv[])
                        &frequency,
                        "Solvers frequency for printing residuals (#iters).");
 
+      // Make sure this value is large enough to keep the cores busy for a while.
       int n = 1000;
       My_CLP.setOption("size",
                        &n,
