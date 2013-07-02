@@ -2,4 +2,4 @@
 
 CXX=mpicxx \
 cmake \
-  ../trilinos-speedup-test
+  ${HOME}/rcs/trilinos-speedup-test
