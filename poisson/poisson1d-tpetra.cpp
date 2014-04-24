@@ -1,3 +1,24 @@
+// @HEADER
+//
+//    Tpetra test for the Poisson problem.
+//    Copyright (C) 2012--2014  Nico Schl\"omer
+//
+//    This program is free software: you can redistribute it and/or modify
+//    it under the terms of the GNU General Public License as published by
+//    the Free Software Foundation, either version 3 of the License, or
+//    (at your option) any later version.
+//
+//    This program is distributed in the hope that it will be useful,
+//    but WITHOUT ANY WARRANTY; without even the implied warranty of
+//    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+//    GNU General Public License for more details.
+//
+//    You should have received a copy of the GNU General Public License
+//    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+//
+// @HEADER
+#include <string>
+
 #include <Teuchos_CommandLineProcessor.hpp>
 #include <Teuchos_ParameterList.hpp>
 #include <Teuchos_XMLParameterListHelpers.hpp>
@@ -36,7 +57,7 @@ using Teuchos::RCP;
 // Set up Tpetra typedefs.
 typedef double scalar_type;
 typedef int local_ordinal_type;
-typedef long global_ordinal_type;
+typedef long int global_ordinal_type;
 typedef Kokkos::DefaultNode::DefaultNodeType node_type;
 typedef Tpetra::Vector<scalar_type, local_ordinal_type, global_ordinal_type, node_type> vector_type;
 typedef Tpetra::CrsMatrix<scalar_type, local_ordinal_type, global_ordinal_type, node_type> matrix_type;
@@ -49,30 +70,29 @@ contructTpetraMatrix(const int n, const RCP<const Teuchos::Comm<int> > & comm);
 // =============================================================================
 int main (int argc, char *argv[])
 {
-    Teuchos::oblackholestream blackHole;
-    Teuchos::GlobalMPISession mpiSession (&argc, &argv, &blackHole);
-    RCP<const Teuchos::Comm<int> > comm =
-      Tpetra::DefaultPlatform::getDefaultPlatform().getComm();
+  Teuchos::oblackholestream blackHole;
+  Teuchos::GlobalMPISession mpiSession (&argc, &argv, &blackHole);
+  RCP<const Teuchos::Comm<int> > comm =
+    Tpetra::DefaultPlatform::getDefaultPlatform().getComm();
 
-    const RCP<Teuchos::FancyOStream> out =
-        Teuchos::VerboseObjectBase::getDefaultOStream();
+  const RCP<Teuchos::FancyOStream> out =
+    Teuchos::VerboseObjectBase::getDefaultOStream();
 
-    bool success = true;
-    try
-    {
-      // ===========================================================================
-      // handle command line arguments
-      Teuchos::CommandLineProcessor My_CLP;
+  bool success = true;
+  try {
+    // ===========================================================================
+    // handle command line arguments
+    Teuchos::CommandLineProcessor My_CLP;
 
-      My_CLP.setDocString("Linear solver testbed for the 1D Poisson matrix.\n");
+    My_CLP.setDocString("Linear solver testbed for the 1D Poisson matrix.\n");
 
-      std::string action("matvec");
-      My_CLP.setOption("action",
-                       &action,
-                       "Which action to perform with the operator (matvec, solve_cg, solve_minres, solve_gmres)"
-                       );
+    std::string action("matvec");
+    My_CLP.setOption("action",
+                     &action,
+                     "Which action to perform with the operator (matvec, solve_cg, solve_minres, solve_gmres)"
+                    );
 
-      std::string solver("cg");
+    std::string solver("cg");
 //       My_CLP.setOption("solver", &solver, "Krylov subspace method (cg, minres, gmres)");
 
 //       Operator op = JAC;
@@ -80,89 +100,86 @@ int main (int argc, char *argv[])
 //       std::string allOptNames[] = {"jac", "keo", "keoreg", "poisson1d"};
 //       My_CLP.setOption("operator", &op, 4, allOpts, allOptNames);
 
-      bool verbose = true;
-      My_CLP.setOption("verbose", "quiet",
-                       &verbose,
-                       "Print messages and results.");
+    bool verbose = true;
+    My_CLP.setOption("verbose", "quiet",
+                     &verbose,
+                     "Print messages and results.");
 
-      int frequency = 10;
-      My_CLP.setOption("frequency",
-                       &frequency,
-                       "Solvers frequency for printing residuals (#iters).");
+    int frequency = 10;
+    My_CLP.setOption("frequency",
+                     &frequency,
+                     "Solvers frequency for printing residuals (#iters).");
 
-      // Make sure this value is large enough to keep the cores busy for a while.
-      int n = 1000;
-      My_CLP.setOption("size",
-                       &n,
-                       "Size of the equation system (default: 1000).");
+    // Make sure this value is large enough to keep the cores busy for a while.
+    int n = 1000;
+    My_CLP.setOption("size",
+                     &n,
+                     "Size of the equation system (default: 1000).");
 
-      // print warning for unrecognized arguments
-      My_CLP.recogniseAllOptions(true);
-      My_CLP.throwExceptions(false);
+    // print warning for unrecognized arguments
+    My_CLP.recogniseAllOptions(true);
+    My_CLP.throwExceptions(false);
 
-      // finally, parse the command line
-      TEUCHOS_ASSERT_EQUALITY(My_CLP.parse (argc, argv),
-                              Teuchos::CommandLineProcessor::PARSE_SUCCESSFUL
-                              );
-      // =========================================================================
-      // Construct Tpetra matrix.
-      RCP<Teuchos::Time> tpetraMatrixConstructTime =
-          Teuchos::TimeMonitor::getNewTimer("Tpetra matrix construction");
-      RCP<matrix_type> A;
-      {
+    // finally, parse the command line
+    TEUCHOS_ASSERT_EQUALITY(My_CLP.parse (argc, argv),
+                            Teuchos::CommandLineProcessor::PARSE_SUCCESSFUL
+                           );
+    // =========================================================================
+    // Construct Tpetra matrix.
+    RCP<Teuchos::Time> tpetraMatrixConstructTime =
+      Teuchos::TimeMonitor::getNewTimer("Tpetra matrix construction");
+    RCP<matrix_type> A;
+    {
       Teuchos::TimeMonitor tm(*tpetraMatrixConstructTime);
       A = contructTpetraMatrix(n, comm);
-      }
+    }
 //       RCP<Teuchos::FancyOStream> fos = Teuchos::fancyOStream(rcpFromRef(std::cout));
 //       A->describe(*fos, Teuchos::VERB_EXTREME);
 //       std::cout << std::endl << A->description() << std::endl << std::endl;
 
-      // create tpetra vectors
-      RCP<vector_type> x = rcp(new vector_type(A->getDomainMap()));
-      RCP<vector_type> b = rcp(new vector_type(A->getRangeMap()));
-      b->putScalar(1.0);
+    // create tpetra vectors
+    RCP<vector_type> x = rcp(new vector_type(A->getDomainMap()));
+    RCP<vector_type> b = rcp(new vector_type(A->getRangeMap()));
+    b->putScalar(1.0);
 
-      if (action.compare("matvec") == 0)
+    if (action.compare("matvec") == 0) {
+      x->putScalar(1.0);
+      RCP<Teuchos::Time> tmvTime = Teuchos::TimeMonitor::getNewTimer("Tpetra operator apply");
       {
-        x->putScalar(1.0);
-        RCP<Teuchos::Time> tmvTime = Teuchos::TimeMonitor::getNewTimer("Tpetra operator apply");
-        {
         Teuchos::TimeMonitor tm(*tmvTime);
         A->apply(*x, *b);
-        }
-
-        // print timing data
-        Teuchos::TimeMonitor::summarize();
       }
-      else
-      {
-        // -----------------------------------------------------------------------
-        // Belos part
-        Teuchos::ParameterList belosList;
-        // Relative convergence tolerance requested
-        belosList.set("Convergence Tolerance", 1.0e-12);
-        if (verbose)
-        {
-          belosList.set("Verbosity",
-                        Belos::Errors +
-                        Belos::Warnings +
-                        Belos::IterationDetails +
-                        Belos::FinalSummary +
-                        Belos::Debug +
-                        Belos::TimingDetails +
-                        Belos::StatusTestDetails
-                        );
-          if (frequency > 0)
-            belosList.set("Output Frequency", frequency);
-        }
-        else
-          belosList.set("Verbosity", Belos::Errors + Belos::Warnings);
 
-        belosList.set("Output Style", (int)Belos::Brief); // Belos::General, Belos::Brief
-        belosList.set("Maximum Iterations", 1000);
+      // print timing data
+      Teuchos::TimeMonitor::summarize();
+    } else {
+      // -----------------------------------------------------------------------
+      // Belos part
+      Teuchos::ParameterList belosList;
+      // Relative convergence tolerance requested
+      belosList.set("Convergence Tolerance", 1.0e-12);
+      if (verbose) {
+        belosList.set("Verbosity",
+                      Belos::Errors +
+                      Belos::Warnings +
+                      Belos::IterationDetails +
+                      Belos::FinalSummary +
+                      Belos::Debug +
+                      Belos::TimingDetails +
+                      Belos::StatusTestDetails
+                     );
+        if (frequency > 0)
+          belosList.set("Output Frequency", frequency);
+      } else {
+        belosList.set("Verbosity", Belos::Errors + Belos::Warnings);
+      }
 
-        // Construct an unpreconditioned linear problem instance.
-        Belos::LinearProblem<scalar_type,vector_type,op_type> problem(A, x, b);
+      // Belos::General, Belos::Brief
+      belosList.set("Output Style", static_cast<int>Belos::Brief);
+      belosList.set("Maximum Iterations", 1000);
+
+      // Construct an unpreconditioned linear problem instance.
+      Belos::LinearProblem<scalar_type, vector_type, op_type> problem(A, x, b);
 //        bool set = problem.setProblem();
 //        TEUCHOS_TEST_FOR_EXCEPTION(!set,
 //                                   std::logic_error,
@@ -224,11 +241,11 @@ int main (int argc, char *argv[])
 ////             if (actRes > 1.0e-10) badRes = true;
 ////           }
 ////         }
-      }
     }
-    TEUCHOS_STANDARD_CATCH_STATEMENTS(true, *out, success);
+  }
+  TEUCHOS_STANDARD_CATCH_STATEMENTS(true, *out, success);
 
-    return success ? EXIT_SUCCESS : EXIT_FAILURE;
+  return success ? EXIT_SUCCESS : EXIT_FAILURE;
 }
 // =========================================================================
 RCP<matrix_type>
@@ -236,32 +253,33 @@ contructTpetraMatrix(const int n,
                      const RCP<const Teuchos::Comm<int> > & comm)
 {
   RCP<matrix_type> A;
-  RCP<const Tpetra::Map<local_ordinal_type,global_ordinal_type> > map =
-    Tpetra::createUniformContigMap<local_ordinal_type,global_ordinal_type>(n, comm);
+  RCP<const Tpetra::Map<local_ordinal_type, global_ordinal_type> > map =
+    Tpetra::createUniformContigMap<local_ordinal_type, global_ordinal_type>(n, comm);
   // Get update list and number of local equations from newly created map.
   const size_t numMyElements = map->getNodeNumElements();
   Teuchos::ArrayView<const global_ordinal_type> myGlobalElements = map->getNodeElementList();
   // Create a CrsMatrix using the map, with a dynamic allocation of 3 entries per row
   A = Tpetra::createCrsMatrix<scalar_type>(map, 3);
   // Add rows one-at-a-time
-  for (size_t i=0; i<numMyElements; i++)
-  {
-    if (myGlobalElements[i] == 0)
-    {
-      A->insertGlobalValues(myGlobalElements[i],
-                                   Teuchos::tuple<global_ordinal_type>(myGlobalElements[i], myGlobalElements[i]+1),
-                                   Teuchos::tuple<scalar_type> (2.0, -1.0));
-    }
-    else if (myGlobalElements[i] == n-1)
-    {
-      A->insertGlobalValues(myGlobalElements[i],
-                                   Teuchos::tuple<global_ordinal_type>(myGlobalElements[i]-1, myGlobalElements[i]),
-                                   Teuchos::tuple<scalar_type> (-1.0, 2.0));
-    }
-    else {
-    A->insertGlobalValues(myGlobalElements[i],
-                                 Teuchos::tuple<global_ordinal_type>(myGlobalElements[i]-1, myGlobalElements[i], myGlobalElements[i]+1),
-                                 Teuchos::tuple<scalar_type> (-1.0, 2.0, -1.0));
+  for (size_t i = 0; i < numMyElements; i++) {
+    if (myGlobalElements[i] == 0) {
+      A->insertGlobalValues(
+          myGlobalElements[i],
+          Teuchos::tuple<global_ordinal_type>(myGlobalElements[i], myGlobalElements[i]+1),
+          Teuchos::tuple<scalar_type> (2.0, -1.0)
+          );
+    } else if (myGlobalElements[i] == n-1) {
+      A->insertGlobalValues(
+          myGlobalElements[i],
+          Teuchos::tuple<global_ordinal_type>(myGlobalElements[i]-1, myGlobalElements[i]),
+          Teuchos::tuple<scalar_type> (-1.0, 2.0)
+          );
+    } else {
+      A->insertGlobalValues(
+          myGlobalElements[i],
+          Teuchos::tuple<global_ordinal_type>(myGlobalElements[i]-1, myGlobalElements[i], myGlobalElements[i]+1),
+          Teuchos::tuple<scalar_type> (-1.0, 2.0, -1.0)
+          );
     }
   }
   // Complete the fill, ask that storage be reallocated and optimized

@@ -3,21 +3,18 @@
 import sys
 import subprocess
 
-# =========================================================================
+
 def _main():
     file = './poisson1d'
-
     #type = 'hybrid'
     type = 'mpi'
     for num_nodes in [1, 2, 4, 8]:
         _submit_job(file, num_nodes, type)
-
     return
-# =========================================================================
+
+
 def _submit_job(file, num_nodes, type):
-
     cores_per_node = 24
-
     if type == 'mpi':
         num_cores = num_nodes * cores_per_node
         submit = '''#!/bin/bash -l
@@ -65,12 +62,11 @@ aprun -n %d -d %d -N %d -cc numa_node %s
     f = open('submit.sh', 'w')
     f.write(submit)
     f.close()
-
     # Actually submit.
     run('qsub submit.sh')
-
     return
-# ==============================================================================
+
+
 def run(command, verbose=True):
     '''
     Runs a given command on the command line and returns its output.
@@ -84,22 +80,23 @@ def run(command, verbose=True):
     # if close_fds is true then no handles will be inherited by the child
     # process. Note that on Windows, you cannot set close_fds to true and also
     # redirect the standard handles by setting stdin, stdout or stderr.
-    process = subprocess.Popen( command,
-                                shell=True,
-                                stdout=subprocess.PIPE,
-                                stderr=subprocess.PIPE,
-                                close_fds=False )
+    process = subprocess.Popen(command,
+                               shell=True,
+                               stdout=subprocess.PIPE,
+                               stderr=subprocess.PIPE,
+                               close_fds=False
+                               )
     output = process.stdout.read()[:-1]
     ret = process.wait()
 
     if ret != 0:
-        sys.exit( '\nERROR: The command \n\n%s\n\nreturned a nonzero ' \
-                  'exit status. The error message is \n\n%s\n\n' \
-                  'Abort.\n' % \
-                  ( command, process.stderr.read()[:-1] )
-                )
+        sys.exit('\nERROR: The command \n\n%s\n\nreturned a nonzero '
+                 'exit status. The error message is \n\n%s\n\n'
+                 'Abort.\n'
+                 % (command, process.stderr.read()[:-1])
+                 )
     return output
-# =========================================================================
+
+
 if __name__ == '__main__':
     _main()
-# =========================================================================
