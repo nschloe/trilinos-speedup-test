@@ -175,7 +175,7 @@ int main (int argc, char *argv[])
       }
 
       // Belos::General, Belos::Brief
-      belosList.set("Output Style", static_cast<int>Belos::Brief);
+      belosList.set("Output Style", static_cast<int>(Belos::Brief));
       belosList.set("Maximum Iterations", 1000);
 
       // Construct an unpreconditioned linear problem instance.
