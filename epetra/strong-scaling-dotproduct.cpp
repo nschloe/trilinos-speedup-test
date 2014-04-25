@@ -34,7 +34,7 @@ using Teuchos::RCP;
 using Teuchos::rcp;
 
 
-int myPow(int n, int k)
+int myPow(int n, unsigned int k)
 {
   int out = n;
   for (int kk = 0; kk < k; kk++)
@@ -66,7 +66,7 @@ int main (int argc, char *argv[])
     // Do strong scaling tests, so keep numGlobalElements independent of
     // the number of processes.
     const int maxSize = 9;
-    for (int k = 0; k != maxSize+1; k++) {
+    for (unsigned int k = 0; k != maxSize+1; k++) {
       int numGlobalElements = myPow(10, k);
       // create map
       int indexBase = 0;
