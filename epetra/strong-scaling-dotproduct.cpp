@@ -37,7 +37,7 @@ using Teuchos::rcp;
 int myPow(int n, int k)
 {
   int out = n;
-  for (int kk = 0; kk < k; k++)
+  for (int kk = 0; kk < k; kk++)
     out *= n;
   return out;
 }
